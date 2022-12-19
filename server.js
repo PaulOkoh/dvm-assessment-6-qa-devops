@@ -1,12 +1,26 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const app = express()
+const path = require('path')
 const {bots, playerRecord} = require('./data')
 const {shuffleArray} = require('./utils')
+const {ROLLBAR_TOKEN} = process.env
 
 
 app.use(cors())
 app.use(express.json())
+
+// include and initialize the rollbar library with your access token
+var Rollbar = require('rollbar')
+var rollbar = new Rollbar({
+  accessToken:ROLLBAR_TOKEN,
+  captureUncaught: true,
+  captureUnhandledRejections: true,
+})
+
+// record a generic message and send it to Rollbar
+rollbar.log('Hello world!')
 
 app.use(express.static('public'))
 //app.use(express.static(`${_dirname}`/public))
@@ -17,15 +31,18 @@ app.get('/', (req,res) => {
   
 
 app.get('/api/robots', (req, res) => {
+    rollbar.log("user attempted to get all robots")
     try {
         res.status(200).send(bots)
     } catch (error) {
+        rollbar.error(error)
         console.log('ERROR GETTING BOTS', error)
         res.sendStatus(400)
     }
 })
 
 app.get('/api/robots/five', (req, res) => {
+    rollbar.info("user attempted to get 5 robot cards")
     try {
         let shuffled = shuffleArray(bots)
         let choices = shuffled.slice(0, 5)
@@ -38,6 +55,7 @@ app.get('/api/robots/five', (req, res) => {
 })
 
 app.post('/api/duel', (req, res) => {
+    rollbar.critical('someone tried to get duos from frontend')
     try {
         // getting the duos from the front end
         let {compDuo, playerDuo} = req.body
@@ -69,6 +87,7 @@ app.post('/api/duel', (req, res) => {
 })
 
 app.get('/api/player', (req, res) => {
+    rollbar.log("getting player stats")
     try {
         res.status(200).send(playerRecord)
     } catch (error) {
